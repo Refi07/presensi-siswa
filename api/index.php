@@ -1,4 +1,4 @@
 <?php
 
-// Forward request ke index.php public Laravel
+// Jalankan index.php utama Laravel
 require __DIR__ . '/../public/index.php';
