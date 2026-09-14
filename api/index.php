@@ -1,17 +1,13 @@
 <?php
 
-// Arahkan folder temporer Laravel ke /tmp (wajib di Vercel)
-putenv('VIEW_COMPILED_PATH=/tmp');
-putenv('APP_CONFIG_CACHE=/tmp/config.php');
-putenv('APP_SERVICES_CACHE=/tmp/services.php');
-putenv('APP_PACKAGES_CACHE=/tmp/packages.php');
-putenv('APP_ROUTES_CACHE=/tmp/routes.php');
+// Set lokasi penyimpanan temporer wajib di Vercel (folder /tmp satu-satunya yang bisa ditulis)
+$_ENV['APP_STORAGE'] = '/tmp';
+$_ENV['VIEW_COMPILED_PATH'] = '/tmp/views';
 
-// Buat direktori temporer jika belum ada
+// Buat folder /tmp jika belum ada
 $directories = [
-    '/tmp/posts',
-    '/tmp/sessions',
     '/tmp/views',
+    '/tmp/sessions',
     '/tmp/cache',
 ];
 
