@@ -14,6 +14,25 @@
             @endif
 
             <div class="bg-white p-6 shadow-sm sm:rounded-lg">
+                <!-- FORM FILTER KELAS -->
+                <div class="mb-6 pb-4 border-b">
+                    <form method="GET" action="{{ route('teacher.permissions.index') }}" class="flex items-center gap-3">
+                        <label for="class_id" class="font-semibold text-gray-700 text-sm">Filter Kelas:</label>
+                        <select name="class_id" id="class_id" onchange="this.form.submit()" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Semua Kelas --</option>
+                            @foreach($classes as $class)
+                                <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
+                                    {{ $class->class_name ?? $class->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        @if(request('class_id'))
+                            <a href="{{ route('teacher.permissions.index') }}" class="text-xs text-red-600 hover:underline font-semibold ml-2">Reset Filter</a>
+                        @endif
+                    </form>
+                </div>
+
                 <h3 class="text-lg font-bold mb-4">Daftar Pengajuan Izin Masuk</h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">

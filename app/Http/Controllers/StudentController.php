@@ -52,7 +52,7 @@ class StudentController extends Controller
             ], 400);
         }
 
-        // --- 1. VALIDASI BATAS WAKTU PRESENSI (15:00 WIB) ---
+        //  1. VALIDASI BATAS WAKTU PRESENSI (15:00 WIB) 
         $timeSetting = Setting::where('key', 'enable_time_limit')->first();
         $isTimeLimitActive = $timeSetting ? ($timeSetting->value == '1') : true;
 
@@ -63,7 +63,7 @@ class StudentController extends Controller
             ], 400);
         }
 
-        // --- 2. VALIDASI LOKASI GPS (GEOFENCING) ---
+        //  2. VALIDASI LOKASI GPS (GEOFENCING) 
         $locationSetting = Setting::where('key', 'enable_location_check')->first();
         $isLocationActive = $locationSetting ? ($locationSetting->value == '1') : true;
 
@@ -82,7 +82,7 @@ class StudentController extends Controller
             $schoolLat = -7.4339;   
             $schoolLng = 112.7231;  
             
-            // Radius lokasi aktif: 100 meter (Gunakan jarak sebenarnya)
+            // Radius lokasi aktif: 100 meter
             $maxRadiusMeters = 100; 
 
             // Hitung jarak menggunakan rumus Haversine
@@ -96,8 +96,7 @@ class StudentController extends Controller
             }
         }
 
-        // --- 3. VALIDASI KODE PRESENSI ---
-        // Menangkap parameter qr_code_token atau qr_code
+        //  3. VALIDASI KODE PRESENSI 
         $inputData = strtoupper(trim($request->input('qr_code_token', $request->input('qr_code'))));
         $today = Carbon::today()->toDateString();
 
@@ -140,21 +139,27 @@ class StudentController extends Controller
             'status' => $status,
         ]);
 
-        // --- KIRIM WA OTOMATIS VIA FONNTE API JIKA TERLAMBAT ---
-        if ($status === 'terlambat') {
-            $parentPhone = $student->parent_phone ?? '089687048663';
-            $studentName = $student->user->name ?? 'Siswa';
-            $formattedDate = Carbon::now()->translatedFormat('d F Y');
+        //  KIRIM WA OTOMATIS VIA FONNTE API (UNTUK HADIR & TERLAMBAT) 
+        $parentPhone = $student->parent_phone ?? '089687048663';
+        $studentName = $student->user->name ?? $student->name ?? 'Siswa';
+        $formattedDate = Carbon::now()->translatedFormat('d F Y');
 
+        if ($status === 'terlambat') {
             $message = "INFO PRESENSI HADIRKU\n" .
                        "SMK Antartika 2 Sidoarjo\n\n" .
                        "Yth. Orang Tua/Wali dari *{$studentName}*,\n\n" .
-                       "Diberitahukan bahwa putra/putri Anda pada hari ini ({$formattedDate}) tercatat TERLAMBAT masuk sekolah pada pukul *{$currentTime} WIB*.\n\n" .
+                       "Diberitahukan bahwa putra/putri Anda pada hari ini ({$formattedDate}) tercatat *TERLAMBAT* masuk sekolah pada pukul *{$currentTime} WIB*.\n\n" .
                        "_Pesan ini dikirim otomatis oleh Sistem HadirKu._";
-
-            // Kirim request background ke Fonnte API
-            $this->sendFonnteNotification($parentPhone, $message);
+        } else {
+            $message = "INFO PRESENSI HADIRKU\n" .
+                       "SMK Antartika 2 Sidoarjo\n\n" .
+                       "Yth. Orang Tua/Wali dari *{$studentName}*,\n\n" .
+                       "Diberitahukan bahwa putra/putri Anda pada hari ini ({$formattedDate}) telah *HADIR* di sekolah pada pukul *{$currentTime} WIB*.\n\n" .
+                       "_Pesan ini dikirim otomatis oleh Sistem HadirKu._";
         }
+
+        // Kirim notifikasi Fonnte
+        $this->sendFonnteNotification($parentPhone, $message);
 
         return response()->json([
             'status' => 'success',
@@ -167,14 +172,18 @@ class StudentController extends Controller
         $token = env('FONNTE_TOKEN');
 
         if (!$token) {
-            return; // Abaikan jika token belum diisi di .env
+            \Log::warning('Fonnte Token belum ada di .env');
+            return;
         }
+
+        // Format nomor HP ke format 62
+        $formattedPhone = preg_replace('/^0/', '62', trim($targetPhone));
 
         try {
             Http::withHeaders([
                 'Authorization' => $token,
             ])->post('https://api.fonnte.com/send', [
-                'target' => $targetPhone,
+                'target' => $formattedPhone,
                 'message' => $message,
             ]);
         } catch (\Exception $e) {

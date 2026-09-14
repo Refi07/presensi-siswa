@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Permission;
 use App\Models\Student;
 use App\Models\Attendance;
+use App\Models\ClassModel; // 1. Pastikan import ClassModel
 use Illuminate\Support\Facades\Auth;
 
 class PermissionController extends Controller
@@ -55,21 +56,35 @@ class PermissionController extends Controller
     }
 
     // Daftar Pengajuan Izin untuk Guru / Admin
-    public function indexTeacher()
+    public function indexTeacher(Request $request) // Tambahkan Request $request
     {
         $user = Auth::user();
 
+        // 1. Ambil daftar kelas untuk opsi dropdown filter
         if ($user->role === 'admin') {
-            // Admin bisa melihat semua pengajuan izin
-            $permissions = Permission::with(['student.user', 'student.class', 'parent'])->latest()->get();
+            $classes = ClassModel::all();
+            $query = Permission::query();
         } else {
-            // Guru hanya melihat pengajuan dari siswa yang memiliki kelas bertaut dengan teacher_id miliknya
-            $permissions = Permission::whereHas('student.class', function ($query) use ($user) {
-                $query->where('teacher_id', $user->id);
-            })->with(['student.user', 'student.class', 'parent'])->latest()->get();
+            // Guru hanya bisa memilih kelas yang dia ampu
+            $classes = ClassModel::where('teacher_id', $user->id)->get();
+            $query = Permission::whereHas('student.class', function ($q) use ($user) {
+                $q->where('teacher_id', $user->id);
+            });
         }
 
-        return view('teacher.permissions', compact('permissions'));
+        // 2. Filter berdasarkan class_id jika ada request filter yang dipilih
+        if ($request->filled('class_id')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('class_id', $request->class_id);
+            });
+        }
+
+        // 3. Ambil data izin beserta relasinya
+        $permissions = $query->with(['student.user', 'student.class', 'parent'])
+            ->latest()
+            ->get();
+
+        return view('teacher.permissions', compact('permissions', 'classes'));
     }
 
     // Update Status Izin (Approve / Reject) oleh Guru
