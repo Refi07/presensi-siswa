@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\URL; // Opsional: jika ingin tanpa backslash di URL::forceScheme
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,8 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (config('app.env') !== 'local') {
-            URL::forceScheme('https');
+        if ($this->app->environment('production')) {
+            \URL::forceScheme('https');
         }
     }
 }
